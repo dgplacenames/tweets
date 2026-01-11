@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@dgplacenames Twitter Archive</title>
+    <style>
+        /* === Reset & Base Styles === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            color: #14171a;
+            line-height: 1.5;
+        }
+        
+        /* === Layout === */
+        .main-container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            width: 300px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        
+        .sidebar-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-section:first-child {
+            position: sticky;
+            top: 20px;
+            z-index: 10;
+            background: white;
+        }
+        
+        .sidebar-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .profile-pic {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .profile-pic:hover {
+            opacity: 0.9;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .content {
+            flex: 1;
+            max-width: 600px;
+            padding-top: 0;
+        }
+        
+        /* === Search === */
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 20px;
+            font-size: 15px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #1da1f2;
+        }
+        
+        /* === Statistics === */
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            color: #657786;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #14171a;
+        }
+        
+        /* === Toggle Switch === */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 26px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #1da1f2;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .toggle-label {
+            font-size: 14px;
+            color: #14171a;
+        }
+        
+        /* === Tweets === */
+        .tweet {
+            background: white;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eff3f4;
+            transition: background-color 0.3s ease;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .tweet.hidden {
+            display: none;
+        }
+        
+        .tweet-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        
+        .tweet-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .tweet-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0;
+        }
+        
+        .tweet-date {
+            color: #657786;
+            font-size: 14px;
+        }
+        
+        .tweet-text {
+            margin-bottom: 0;
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .tweet-text a {
+            color: #1da1f2;
+            text-decoration: none;
+        }
+        
+        .tweet-text a:hover {
+            text-decoration: underline;
+        }
+        
+        .retweet-badge {
+            display: inline-block;
+            color: #657786;
+            font-size: 13px;
+            margin-bottom: 4px;
+            margin-top: 4px;
+        }
+        
+        /* === Media === */
+        .tweet-media {
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+        
+        .tweet-media img {
+            max-width: 100%;
+            width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .tweet-media img:hover {
+            opacity: 0.9;
+        }
+        
+        /* === Loading === */
+        .loading-indicator {
+            text-align: center;
+            padding: 20px;
+            color: #657786;
+        }
+        
+        /* === Lightbox === */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .lightbox.active {
+            display: flex;
+        }
+        
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 0;
+        }
+        
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .lightbox-close:hover {
+            color: #ccc;
+        }
+        
+        /* === Responsive === */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Title -->
+            <div class="sidebar-section">
+                <div class="profile-header">
+                    <img src="profile.jpg" alt="Profile picture" class="profile-pic" onclick="openLightbox('profile.jpg')">
+                    <div class="profile-info">
+                        <h1 style="font-size: 20px; margin-bottom: 2px;">@dgplacenames</h1>
+                        <p style="color: #657786; font-size: 14px;">Twitter Archive</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="sidebar-section">
+                <h2>Search</h2>
+                <input type="text" id="search" class="search-input" placeholder="Search tweets...">
+            </div>
+            
+            <!-- Statistics -->
+            <div class="sidebar-section">
+                <h2>Statistics</h2>
+                <div class="stat-item">
+                    <span>Original tweets:</span>
+                    <span class="stat-value" id="original-tweets">—</span>
+                </div>
+                <div class="stat-item">
+                    <span>Words:</span>
+                    <span class="stat-value" id="original-words">—</span>
+                </div>
+                <div class="stat-item" style="padding-top: 12px; margin-top: 8px; border-top: 1px solid #e1e8ed;">
+                    <span>Retweets:</span>
+                    <span class="stat-value" id="total-retweets">—</span>
+                </div>
+                <div class="stat-item">
+                    <span>Words:</span>
+                    <span class="stat-value" id="retweet-words">—</span>
+                </div>
+                <div class="toggle-container" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e1e8ed;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-retweets" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label class="toggle-label" for="show-retweets">Show retweets</label>
+                </div>
+                <div class="stat-item" style="padding-top: 12px; margin-top: 8px; border-top: 1px solid #e1e8ed;">
+                    <span>Showing:</span>
+                    <span class="stat-value" id="showing-count">—</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="content">
+            <div id="tweets">
+                <div class="loading-indicator">Loading tweets...</div>
+            </div>
+            <div id="loading-more" class="loading-indicator" style="display: none;">
+                Loading more tweets...
+            </div>
+        </main>
+    </div>
+    
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <img id="lightbox-img" src="" alt="Full size image">
+    </div>
+    
+    <!-- Initialize YTD object before loading tweets -->
+    <script>
+        window.YTD = { tweets: {} };
+    </script>
+    
+    <!-- Load tweets data -->
+    <script src="data/tweets.js"></script>
+    
+    <!-- Main Application -->
+    <script>
+        // === State ===
+        let allTweets = [];
+        let filteredTweets = [];
+        let displayedCount = 0;
+        const TWEETS_PER_LOAD = 50;
+        let isLoading = false;
+        let showRetweets = true;
+        let searchQuery = '';
+        
+        // === Initialize ===
+        if (window.YTD && window.YTD.tweets && window.YTD.tweets.part0) {
+            allTweets = window.YTD.tweets.part0;
+            
+            // Sort by date (newest first)
+            allTweets.sort((a, b) => 
+                new Date(b.tweet.created_at) - new Date(a.tweet.created_at)
+            );
+            
+            // Calculate and display statistics
+            updateStats();
+            
+            // Apply initial filter
+            applyFilters();
+            
+            // Check if linking to specific tweet
+            if (window.location.hash) {
+                const tweetId = window.location.hash.substring(1);
+                displaySpecificTweet(tweetId);
+            } else {
+                // Display first batch normally
+                displayNextBatch();
+            }
+        } else {
+            document.getElementById('tweets').innerHTML = 
+                '<div class="loading-indicator" style="color: red;">Error: Could not load tweets.js</div>';
+        }
+        
+        // === Statistics ===
+        function updateStats() {
+            let originalTweets = 0;
+            let originalWords = 0;
+            let retweetCount = 0;
+            let retweetWords = 0;
+            
+            allTweets.forEach(item => {
+                const isRetweet = item.tweet.full_text.startsWith('RT @');
+                let text = item.tweet.full_text;
+                
+                // Remove URLs and @mentions for word counting
+                text = text.replace(/https?:\/\/\S+/g, '');
+                text = text.replace(/@\w+/g, '');
+                
+                // Count words
+                const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+                
+                if (isRetweet) {
+                    retweetCount++;
+                    retweetWords += words;
+                } else {
+                    originalTweets++;
+                    originalWords += words;
+                }
+            });
+            
+            document.getElementById('original-tweets').textContent = originalTweets.toLocaleString();
+            document.getElementById('original-words').textContent = originalWords.toLocaleString();
+            document.getElementById('total-retweets').textContent = retweetCount.toLocaleString();
+            document.getElementById('retweet-words').textContent = retweetWords.toLocaleString();
+        }
+        
+        // === Filtering ===
+        function applyFilters() {
+            filteredTweets = allTweets.filter(item => {
+                const tweet = item.tweet;
+                const isRetweet = tweet.full_text.startsWith('RT @');
+                
+                // Filter by retweet toggle
+                if (isRetweet && !showRetweets) return false;
+                
+                // Filter by search query
+                if (searchQuery && !tweet.full_text.toLowerCase().includes(searchQuery)) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        // === Display ===
+        function displayNextBatch() {
+            if (isLoading) return;
+            if (displayedCount >= filteredTweets.length) return;
+            
+            isLoading = true;
+            const container = document.getElementById('tweets');
+            const start = displayedCount;
+            const end = Math.min(start + TWEETS_PER_LOAD, filteredTweets.length);
+            
+            let html = '';
+            for (let i = start; i < end; i++) {
+                html += renderTweet(filteredTweets[i].tweet);
+            }
+            
+            // Append or replace
+            if (displayedCount === 0) {
+                container.innerHTML = html;
+            } else {
+                container.innerHTML += html;
+            }
+            
+            displayedCount = end;
+            updateShowingCount();
+            
+            isLoading = false;
+            document.getElementById('loading-more').style.display = 'none';
+        }
+        
+        function updateShowingCount() {
+            document.getElementById('showing-count').textContent = 
+                `${displayedCount.toLocaleString()} of ${filteredTweets.length.toLocaleString()}`;
+        }
+        
+        // === Rendering ===
+        function renderTweet(tweet) {
+            const date = new Date(tweet.created_at);
+            const formatted = date.toLocaleDateString('en-GB', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let text = tweet.full_text;
+            const isRetweet = text.startsWith('RT @');
+            
+            // Replace URLs with links
+            if (tweet.entities && tweet.entities.urls) {
+                tweet.entities.urls.forEach(url => {
+                    text = text.replace(url.url, 
+                        `<a href="${url.expanded_url}" target="_blank">${url.display_url}</a>`);
+                });
+            }
+            
+            // Handle media (check extended_entities first for multiple images)
+            let mediaHtml = '';
+            const mediaArray = tweet.extended_entities?.media || tweet.entities?.media || [];
+            
+            if (mediaArray.length > 0) {
+                const images = [];
+                mediaArray.forEach(media => {
+                    if (media.type === 'photo') {
+                        // Remove media URL from text
+                        text = text.replace(media.url, '');
+                        
+                        // Get media filename
+                        const mediaUrl = media.media_url_https || media.media_url;
+                        const filename = mediaUrl.split('/').pop();
+                        const path = `data/tweets_media/${tweet.id_str}-${filename}`;
+                        images.push(path);
+                    }
+                });
+                
+                if (images.length > 0) {
+                    mediaHtml = '<div class="tweet-media">';
+                    images.forEach(path => {
+                        mediaHtml += `<img src="${path}" alt="Tweet image" onerror="this.style.display='none'" onclick="openLightbox('${path}'); event.stopPropagation();">`;
+                    });
+                    mediaHtml += '</div>';
+                }
+            }
+            
+            const retweetBadge = isRetweet ? '<div class="retweet-badge">🔁 Retweeted</div>' : '';
+            
+            return `
+                <div class="tweet" id="tweet-${tweet.id_str}">
+                    <img src="profile.jpg" alt="Profile" class="tweet-avatar">
+                    <div class="tweet-content">
+                        <div class="tweet-header">
+                            <div class="tweet-date">${formatted}</div>
+                            <div class="tweet-id" style="color: #657786; font-size: 12px; cursor: pointer;" onclick="copyTweetId(event, '${tweet.id_str}')" title="Click to copy tweet ID">
+                                ID: ${tweet.id_str}
+                            </div>
+                        </div>
+                        ${retweetBadge}
+                        <div class="tweet-text">${text}</div>
+                        ${mediaHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // === Event Listeners ===
+        
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            if (isLoading) return;
+            
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 1000;
+            
+            if (scrollPosition >= threshold && displayedCount < filteredTweets.length) {
+                document.getElementById('loading-more').style.display = 'block';
+                setTimeout(displayNextBatch, 100);
+            }
+        });
+        
+        // Search
+        document.getElementById('search').addEventListener('input', function(e) {
+            searchQuery = e.target.value.toLowerCase();
+            displayedCount = 0;
+            applyFilters();
+            displayNextBatch();
+        });
+        
+        // Retweet toggle
+        document.getElementById('show-retweets').addEventListener('change', function(e) {
+            showRetweets = e.target.checked;
+            displayedCount = 0;
+            applyFilters();
+            displayNextBatch();
+        });
+        
+        // Escape key to close lightbox
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+        
+        // Listen for hash changes (when user changes the URL)
+        window.addEventListener('hashchange', function() {
+            if (window.location.hash) {
+                const tweetId = window.location.hash.substring(1);
+                displaySpecificTweet(tweetId);
+            } else {
+                // Hash removed, show all tweets
+                displayedCount = 0;
+                applyFilters();
+                displayNextBatch();
+            }
+        });
+        
+        // === Specific Tweet Display ===
+        function displaySpecificTweet(tweetId) {
+            const tweet = allTweets.find(t => t.tweet.id_str === tweetId);
+            
+            if (!tweet) {
+                document.getElementById('tweets').innerHTML = 
+                    '<div class="loading-indicator" style="color: red;">Tweet not found</div>';
+                return;
+            }
+            
+            // If it's a retweet, enable retweet display
+            if (tweet.tweet.full_text.startsWith('RT @')) {
+                document.getElementById('show-retweets').checked = true;
+                showRetweets = true;
+            }
+            
+            // Display just this tweet with highlight
+            const container = document.getElementById('tweets');
+            container.innerHTML = `
+                <div style="background: #f7f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="color: #657786; font-size: 14px; margin-bottom: 12px;">
+                        Showing specific tweet • <a href="${window.location.pathname}" style="color: #1da1f2; text-decoration: none;">View all tweets</a>
+                    </p>
+                </div>
+            `;
+            container.innerHTML += renderTweet(tweet.tweet);
+            
+            // Update showing count
+            document.getElementById('showing-count').textContent = '1 tweet';
+            
+            displayedCount = 1;
+        }
+        
+        // === Lightbox Functions ===
+        function copyTweetId(event, tweetId) {
+            navigator.clipboard.writeText(tweetId).then(() => {
+                // Show copied confirmation
+                const idElement = event.target;
+                const originalText = idElement.textContent;
+                idElement.textContent = 'Copied!';
+                idElement.style.color = '#1da1f2';
+                setTimeout(() => {
+                    idElement.textContent = originalText;
+                    idElement.style.color = '#657786';
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+        
+        function openLightbox(src) {
+            document.getElementById('lightbox').classList.add('active');
+            document.getElementById('lightbox-img').src = src;
+        }
+        
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+        }
+        
+    </script>
+</body>
+</html>
